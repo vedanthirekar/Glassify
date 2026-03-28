@@ -2,15 +2,24 @@
 
 import { useState, useCallback } from "react";
 import { useSession } from "@/context/SessionContext";
-import { evaluateRequest, EvaluateResponse } from "@/lib/api";
+import { evaluateRequest, Message } from "@/lib/api";
 import { saveSession, updateSession } from "@/lib/storage";
 import MoodCheckIn from "./MoodCheckIn";
 import ChatInterface from "./ChatInterface";
 import DecisionView from "./DecisionView";
 import TimerOverlay from "./TimerOverlay";
 import PostSession from "./PostSession";
+import UrgeSurfing from "./UrgeSurfing";
 
-type Stage = "mood" | "chat" | "decision" | "timer" | "post_session";
+type Stage = "mood" | "chat" | "decision" | "urge_surfing" | "timer" | "post_session";
+
+interface DecisionResult {
+  decision: "allow" | "reflect" | "redirect";
+  time_granted_minutes: number | null;
+  message: string;
+  insight: string | null;
+  alternatives: string[];
+}
 
 let sessionIdRef = "";
 
@@ -22,12 +31,18 @@ export default function ConscienceLayer() {
   const { activeApp, closeApp, getTodayCount, getLastHourCount } = useSession();
   const [stage, setStage] = useState<Stage>("mood");
   const [mood, setMood] = useState<number>(3);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [decision, setDecision] = useState<EvaluateResponse | null>(null);
+  const [decision, setDecision] = useState<DecisionResult | null>(null);
+  const [followedUp, setFollowedUp] = useState(false);
+  const [urgeSurfed, setUrgeSurfed] = useState(false);
 
   const handleClose = useCallback(() => {
     setStage("mood");
     setDecision(null);
+    setMessages([]);
+    setFollowedUp(false);
+    setUrgeSurfed(false);
     closeApp();
   }, [closeApp]);
 
@@ -36,21 +51,27 @@ export default function ConscienceLayer() {
     setStage("chat");
   }, []);
 
-  const handleReasonSubmit = useCallback(
-    async (reason: string) => {
+  const handleMessageSubmit = useCallback(
+    async (userText: string) => {
       if (!activeApp) return;
       setIsLoading(true);
 
       const now = new Date();
       const timeStr = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
 
-      sessionIdRef = genId();
+      const newMessages: Message[] = [...messages, { role: "user", content: userText }];
+      setMessages(newMessages);
+
+      // Create session on first user message
+      if (messages.length === 0) {
+        sessionIdRef = genId();
+      }
 
       try {
         const result = await evaluateRequest({
           app: activeApp,
           mood,
-          reason,
+          messages: newMessages,
           history: {
             opens_today: getTodayCount(activeApp),
             opens_last_hour: getLastHourCount(activeApp),
@@ -58,90 +79,143 @@ export default function ConscienceLayer() {
           },
         });
 
-        saveSession({
-          id: sessionIdRef,
-          timestamp: now.toISOString(),
-          app: activeApp,
-          mood_before: mood,
-          reason,
-          decision: result.decision,
-          time_granted: result.time_granted_minutes,
-          mood_after: null,
-          completed: false,
-        });
+        if (result.type === "follow_up") {
+          // Claude wants to ask a follow-up question
+          const followUpMessage: Message = {
+            role: "assistant",
+            content: result.follow_up_question,
+          };
+          setMessages([...newMessages, followUpMessage]);
+          setFollowedUp(true);
+          // Stay in chat stage
+        } else {
+          // Final decision
+          const decisionResult: DecisionResult = {
+            decision: result.decision,
+            time_granted_minutes: result.time_granted_minutes,
+            message: result.message,
+            insight: result.insight,
+            alternatives: result.alternatives,
+          };
 
-        setDecision(result);
-        setStage("decision");
+          saveSession({
+            id: sessionIdRef,
+            timestamp: now.toISOString(),
+            app: activeApp,
+            mood_before: mood,
+            reason: userText,
+            decision: result.decision,
+            time_granted: result.time_granted_minutes,
+            mood_after: null,
+            completed: false,
+            followed_up: followedUp,
+            urge_surfed: false,
+          });
+
+          setDecision(decisionResult);
+          setStage("decision");
+        }
       } catch (err) {
         console.error(err);
         // Fail open — don't block user if API is down
-        setDecision({
+        const fallback: DecisionResult = {
           decision: "allow",
           time_granted_minutes: 10,
           message: "I couldn't connect right now, so go ahead. Try to be intentional! 🌱",
           insight: null,
           alternatives: [],
+        };
+        saveSession({
+          id: sessionIdRef,
+          timestamp: now.toISOString(),
+          app: activeApp,
+          mood_before: mood,
+          reason: userText,
+          decision: "allow",
+          time_granted: 10,
+          mood_after: null,
+          completed: false,
+          followed_up: followedUp,
+          urge_surfed: false,
         });
+        setDecision(fallback);
         setStage("decision");
       } finally {
         setIsLoading(false);
       }
     },
-    [activeApp, mood, getTodayCount, getLastHourCount]
+    [activeApp, mood, messages, followedUp, getTodayCount, getLastHourCount]
   );
 
-  const handleAllow = useCallback(() => {
-    setStage("timer");
-  }, []);
+  const handleAllow = useCallback(() => setStage("timer"), []);
 
   const handleDismiss = useCallback(() => {
     updateSession(sessionIdRef, { completed: true });
     handleClose();
   }, [handleClose]);
 
+  const handleUrgeSurf = useCallback(() => {
+    setUrgeSurfed(true);
+    updateSession(sessionIdRef, { urge_surfed: true });
+    setStage("urge_surfing");
+  }, []);
+
+  const handleUrgeSurfComplete = useCallback(
+    (urgePassedOrWantsToOpen: boolean) => {
+      if (urgePassedOrWantsToOpen) {
+        // Urge passed — close
+        updateSession(sessionIdRef, { completed: true });
+        handleClose();
+      } else {
+        // Still wants to open — allow with timer
+        setDecision((prev) =>
+          prev ? { ...prev, decision: "allow", time_granted_minutes: 10 } : null
+        );
+        setStage("timer");
+      }
+    },
+    [handleClose]
+  );
+
   const handleOverride = useCallback(() => {
-    // Emergency override — still log it but allow
-    updateSession(sessionIdRef, {
-      decision: "allow",
-      time_granted: 10,
-      completed: false,
-    });
+    updateSession(sessionIdRef, { decision: "allow", time_granted: 10 });
     setDecision((prev) =>
-      prev
-        ? { ...prev, decision: "allow", time_granted_minutes: 10 }
-        : null
+      prev ? { ...prev, decision: "allow", time_granted_minutes: 10 } : null
     );
     setStage("timer");
   }, []);
 
-  const handleTimerComplete = useCallback(() => {
-    setStage("post_session");
-  }, []);
+  const handleTimerComplete = useCallback(() => setStage("post_session"), []);
 
-  const handlePostSessionComplete = useCallback((moodAfter: number) => {
-    updateSession(sessionIdRef, { mood_after: moodAfter, completed: true });
-    handleClose();
-  }, [handleClose]);
+  const handlePostSessionComplete = useCallback(
+    (moodAfter: number) => {
+      updateSession(sessionIdRef, { mood_after: moodAfter, completed: true });
+      handleClose();
+    },
+    [handleClose]
+  );
 
   if (!activeApp) return null;
 
   const STAGE_TITLES: Record<Stage, string> = {
     mood: "Check in",
-    chat: "What's the plan?",
+    chat: "MindGate",
     decision: "MindGate says...",
+    urge_surfing: "90-second pause",
     timer: `Using ${activeApp}`,
     post_session: "How was it?",
   };
 
+  const progressStages: Stage[] = ["mood", "chat", "decision"];
+  const progressIndex = progressStages.indexOf(stage);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
         onClick={stage === "mood" ? handleClose : undefined}
       />
 
-      {/* Modal — constrained to phone width */}
       <div className="relative w-[310px] bg-gradient-to-br from-slate-900/95 to-slate-800/95 border border-white/10 rounded-3xl shadow-2xl overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
@@ -160,15 +234,15 @@ export default function ConscienceLayer() {
           </div>
         </div>
 
-        {/* Stage progress dots */}
+        {/* Progress dots */}
         <div className="flex gap-1.5 px-5 py-2">
-          {(["mood", "chat", "decision"] as Stage[]).map((s, i) => (
+          {progressStages.map((s, i) => (
             <div
               key={s}
               className={`h-1 rounded-full flex-1 transition-all duration-300 ${
                 stage === s
                   ? "bg-violet-400"
-                  : ["mood", "chat", "decision", "timer", "post_session"].indexOf(stage) > i
+                  : progressIndex > i || !progressStages.includes(stage)
                   ? "bg-violet-400/50"
                   : "bg-white/10"
               }`}
@@ -177,7 +251,7 @@ export default function ConscienceLayer() {
         </div>
 
         {/* Content */}
-        <div className="px-5 pb-5 max-h-[500px] overflow-y-auto">
+        <div className="px-5 pb-5 max-h-[520px] overflow-y-auto">
           {stage === "mood" && (
             <MoodCheckIn appName={activeApp} onComplete={handleMoodComplete} />
           )}
@@ -185,7 +259,8 @@ export default function ConscienceLayer() {
             <ChatInterface
               appName={activeApp}
               mood={mood}
-              onSubmit={handleReasonSubmit}
+              messages={messages}
+              onSubmit={handleMessageSubmit}
               isLoading={isLoading}
             />
           )}
@@ -196,7 +271,11 @@ export default function ConscienceLayer() {
               onAllow={handleAllow}
               onDismiss={handleDismiss}
               onOverride={handleOverride}
+              onUrgeSurf={handleUrgeSurf}
             />
+          )}
+          {stage === "urge_surfing" && (
+            <UrgeSurfing onComplete={handleUrgeSurfComplete} />
           )}
           {stage === "timer" && decision?.time_granted_minutes && (
             <TimerOverlay

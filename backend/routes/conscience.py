@@ -1,9 +1,14 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional
-from services.claude_service import evaluate_request
+from services.claude_service import evaluate_conversation
 
 router = APIRouter()
+
+
+class Message(BaseModel):
+    role: str  # "user" | "assistant"
+    content: str
 
 
 class UsageHistory(BaseModel):
@@ -15,29 +20,21 @@ class UsageHistory(BaseModel):
 class EvaluateRequest(BaseModel):
     app: str
     mood: int  # 1-5
-    reason: str
+    messages: list[Message]
     history: UsageHistory
 
 
-class EvaluateResponse(BaseModel):
-    decision: str  # "allow" | "reflect" | "redirect"
-    time_granted_minutes: Optional[int]
-    message: str
-    insight: Optional[str]
-    alternatives: list[str]
-
-
-@router.post("/evaluate", response_model=EvaluateResponse)
+@router.post("/evaluate")
 async def evaluate(req: EvaluateRequest):
     if not 1 <= req.mood <= 5:
         raise HTTPException(status_code=422, detail="Mood must be between 1 and 5")
-    if not req.reason.strip():
-        raise HTTPException(status_code=422, detail="Reason cannot be empty")
+    if not req.messages:
+        raise HTTPException(status_code=422, detail="Messages cannot be empty")
 
-    result = evaluate_request(
+    result = evaluate_conversation(
         app=req.app,
         mood=req.mood,
-        reason=req.reason,
+        messages=[m.model_dump() for m in req.messages],
         opens_today=req.history.opens_today,
         opens_last_hour=req.history.opens_last_hour,
         time_of_day=req.history.time_of_day,

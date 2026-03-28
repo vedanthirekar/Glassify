@@ -4,6 +4,7 @@ load_dotenv()  # Must be before any module that reads env vars at import time
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routes.conscience import router as conscience_router
+from routes.insights import router as insights_router
 
 app = FastAPI(title="MindGate API", version="1.0.0")
 
@@ -16,6 +17,7 @@ app.add_middleware(
 )
 
 app.include_router(conscience_router, prefix="/api")
+app.include_router(insights_router, prefix="/api")
 
 
 @app.get("/health")

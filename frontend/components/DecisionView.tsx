@@ -1,32 +1,37 @@
 "use client";
 
-import { EvaluateResponse } from "@/lib/api";
+// EvaluateResponse is always a decision here (follow_up handled in ConscienceLayer)
+interface DecisionResponse {
+  decision: "allow" | "reflect" | "redirect";
+  time_granted_minutes: number | null;
+  message: string;
+  insight: string | null;
+  alternatives: string[];
+}
 
 interface DecisionViewProps {
   appName: string;
-  response: EvaluateResponse;
+  response: DecisionResponse;
   onAllow: () => void;
   onDismiss: () => void;
   onOverride: () => void;
+  onUrgeSurf: () => void;
 }
 
 const DECISION_STYLES = {
   allow: {
-    bg: "from-emerald-900/80 to-teal-900/80",
     badge: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
     badgeText: "✓ Allowed",
     btnPrimary: "bg-emerald-600 hover:bg-emerald-500",
     btnLabel: "Open App",
   },
   reflect: {
-    bg: "from-amber-900/80 to-orange-900/80",
     badge: "bg-amber-500/20 text-amber-300 border-amber-500/30",
     badgeText: "⏸ Let's Reflect",
     btnPrimary: "bg-amber-600 hover:bg-amber-500",
-    btnLabel: "Take a moment",
+    btnLabel: "I'll close for now",
   },
   redirect: {
-    bg: "from-rose-900/80 to-red-900/80",
     badge: "bg-rose-500/20 text-rose-300 border-rose-500/30",
     badgeText: "🔄 Pattern Alert",
     btnPrimary: "bg-rose-600 hover:bg-rose-500",
@@ -40,6 +45,7 @@ export default function DecisionView({
   onAllow,
   onDismiss,
   onOverride,
+  onUrgeSurf,
 }: DecisionViewProps) {
   const style = DECISION_STYLES[response.decision];
 
@@ -58,7 +64,6 @@ export default function DecisionView({
       {/* Message */}
       <div className="bg-white/10 rounded-2xl rounded-tl-sm px-4 py-4">
         <p className="text-white text-sm leading-relaxed">{response.message}</p>
-
         {response.insight && (
           <p className="text-white/60 text-xs mt-3 italic border-t border-white/10 pt-3">
             💡 {response.insight}
@@ -72,7 +77,7 @@ export default function DecisionView({
           <p className="text-white/60 text-xs font-medium uppercase tracking-wide">
             Instead, you could...
           </p>
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             {response.alternatives.map((alt, i) => (
               <div
                 key={i}
@@ -106,18 +111,27 @@ export default function DecisionView({
             Open {appName} →
           </button>
         ) : (
-          <button
-            onClick={onDismiss}
-            className={`w-full ${style.btnPrimary} text-white font-medium py-3 rounded-xl transition`}
-          >
-            {style.btnLabel}
-          </button>
+          <>
+            {/* Urge surfing — prominent on reflect/redirect */}
+            <button
+              onClick={onUrgeSurf}
+              className="w-full bg-violet-600/30 hover:bg-violet-600/50 border border-violet-500/30 text-violet-200 font-medium py-3 rounded-xl transition flex items-center justify-center gap-2"
+            >
+              <span>🌊</span>
+              Try the 90-second pause
+            </button>
+            <button
+              onClick={onDismiss}
+              className="w-full bg-white/10 hover:bg-white/15 text-white/70 font-medium py-2.5 rounded-xl transition text-sm"
+            >
+              {style.btnLabel}
+            </button>
+          </>
         )}
 
-        {/* Emergency override — always available, just with friction */}
         <button
           onClick={onOverride}
-          className="w-full text-white/30 hover:text-white/50 text-xs py-2 transition"
+          className="w-full text-white/25 hover:text-white/45 text-xs py-1.5 transition"
         >
           Override anyway (emergency)
         </button>

@@ -3,11 +3,13 @@ export interface Session {
   timestamp: string;
   app: string;
   mood_before: number;
-  reason: string;
+  reason: string;           // final user reason (last user message in conversation)
   decision: "allow" | "reflect" | "redirect";
   time_granted: number | null;
   mood_after: number | null;
   completed: boolean;
+  followed_up: boolean;     // whether multi-turn conversation happened
+  urge_surfed: boolean;     // whether user did the 90s breathing pause
 }
 
 const STORAGE_KEY = "mindgate_sessions";
