@@ -132,6 +132,16 @@ Claude evaluates multiple signals together:
 
 ## Features
 
+### App Grid
+
+**Conscience gate** (requires evaluation before opening):
+Instagram, TikTok, X (Twitter), YouTube, Facebook, Reddit
+
+**Direct open** (no gate — timer only):
+Messages, Music, Camera, Maps, Calendar
+
+**Utility:** MindGate settings panel
+
 ### Conscience Layer
 - Mood check-in (emoji scale, optional context note)
 - Multi-turn AI conversation — motivational interviewing, not a single gate
@@ -182,15 +192,25 @@ Runs entirely locally — no reason text leaves the device.
 **Urge Surfing Win Rate** — progress ring showing % of pauses where the urge passed
 *"11 of 14 breathing pauses — you chose not to open the app."*
 
+**Streak Counter** — consecutive days with zero reactive opens
+
 **LLM Weekly Narrative** — anonymised stats sent to Claude, personalised insight returned:
 *"This week you made 31 attempts. 18 happened after 9pm. Your mood dropped after 12 of those 18 sessions — that's a pattern worth paying attention to. Your best days were Tuesday and Thursday."*
 This is what a therapist would say. Concrete, specific, non-judgmental.
+
+### Settings Panel
+- Personal note: "What am I trying to build?" — shared as context with Claude
+- Triggers field: "What pulls me in most?" — informs the AI evaluation
+- Per-app daily time limits (15 min – 2 hrs) for each social app
+- Shows the user exactly what Claude will know about them before each session
+- Stored in localStorage
 
 ### Privacy-First Design
 - All session data stored in localStorage — nothing persists on any server
 - Reason text is never stored server-side; only anonymised category counts sent for narrative
 - No user accounts, no tracking, no external analytics
 - Emergency override always available
+- "Clear Session History" in the analytics dashboard resets all local data
 
 ---
 
@@ -233,10 +253,28 @@ This is what a therapist would say. Concrete, specific, non-judgmental.
 ```
 
 **Stack:**
-- Frontend: Next.js 16, Tailwind CSS, Recharts
+- Frontend: Next.js 16.2.1, React 19.2.4, Tailwind CSS 4, Recharts 3.8.1
 - Backend: Python FastAPI
 - AI: Anthropic Claude (`claude-sonnet-4-6`)
 - Storage: localStorage (no external database)
+
+---
+
+## Running Locally
+
+```bash
+# Backend
+cd mindgate/backend
+cp .env.example .env    # add ANTHROPIC_API_KEY
+uvicorn main:app --reload
+
+# Frontend
+cd mindgate/frontend
+npm install
+npm run dev
+```
+
+Frontend: http://localhost:3000 · Backend: http://localhost:8000
 
 ---
 
