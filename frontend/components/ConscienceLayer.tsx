@@ -7,7 +7,7 @@ import { saveSession, updateSession } from "@/lib/storage";
 import MoodCheckIn from "./MoodCheckIn";
 import ChatInterface from "./ChatInterface";
 import DecisionView from "./DecisionView";
-import TimerOverlay from "./TimerOverlay";
+import AppSimulator from "./AppSimulator";
 import PostSession from "./PostSession";
 import UrgeSurfing from "./UrgeSurfing";
 
@@ -197,6 +197,17 @@ export default function ConscienceLayer() {
 
   if (!activeApp) return null;
 
+  // Timer stage: full-phone app simulation — rendered outside the modal
+  if (stage === "timer" && decision?.time_granted_minutes) {
+    return (
+      <AppSimulator
+        appName={activeApp}
+        minutes={decision.time_granted_minutes}
+        onComplete={handleTimerComplete}
+      />
+    );
+  }
+
   const STAGE_TITLES: Record<Stage, string> = {
     mood: "Check in",
     chat: "MindGate",
@@ -276,13 +287,6 @@ export default function ConscienceLayer() {
           )}
           {stage === "urge_surfing" && (
             <UrgeSurfing onComplete={handleUrgeSurfComplete} />
-          )}
-          {stage === "timer" && decision?.time_granted_minutes && (
-            <TimerOverlay
-              appName={activeApp}
-              minutes={decision.time_granted_minutes}
-              onComplete={handleTimerComplete}
-            />
           )}
           {stage === "post_session" && (
             <PostSession
