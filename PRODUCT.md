@@ -22,20 +22,18 @@ The real problem isn't access to social media. It's the **absence of a moment to
 
 ## The Solution
 
-MindGate is a **conscience layer** — a compassionate AI that intercepts social media opens and asks a single question before the app loads:
+MindGate is a **conscience layer** — a compassionate AI that intercepts social media opens and starts a conversation before the app loads. Not a single question you can type through in two seconds, but a short dialogue that genuinely examines your intent.
 
-> *"Why do you want to open this right now?"*
+It's not a wall. It's a mirror — built on three evidence-based techniques from clinical psychology.
 
-That question, asked at the right moment every time, shifts users from reactive to intentional. It's not a wall. It's a mirror.
+### Psychological Foundation
 
-### Core Insight
-Behavioural psychology tells us three things that MindGate is built around:
+1. **Friction reduces impulsive behaviour.** Even a brief cognitive interruption significantly reduces mindless opens. (Baumeister et al.)
+2. **Affect labelling reduces emotional intensity.** Naming how you feel before acting activates the prefrontal cortex and weakens the automatic response. (Lieberman et al., UCLA)
+3. **Motivational interviewing changes behaviour.** The clinical technique of open-ended questioning — used by therapists to help people examine their own motivations — is significantly more effective than confrontation or restriction.
+4. **Urge surfing works.** ACT and mindfulness research shows 60–90% of urges pass if a person waits 60–90 seconds. The urge peaks and dissolves on its own.
 
-1. **Friction reduces impulsive behaviour.** Even a 3-second cognitive interruption significantly reduces mindless opens.
-2. **Labelling an emotion reduces its intensity.** Naming how you feel before acting — "I'm bored, I'm anxious" — activates the prefrontal cortex and weakens the automatic response. (Lieberman et al., UCLA)
-3. **Implementation intention predicts behaviour.** Stating a specific reason before an action dramatically increases the likelihood the action is intentional and goal-directed.
-
-MindGate operationalises all three.
+MindGate operationalises all four.
 
 ---
 
@@ -45,17 +43,11 @@ MindGate operationalises all three.
 
 This person doesn't need to be controlled. They need **metacognition at the moment of impulse** — awareness of their own mental state before the reflex takes over.
 
-**Why they'd use MindGate over alternatives:**
-- It doesn't block them — it respects their autonomy
-- It explains its reasoning in plain language
-- It adapts to context (late night vs. midday; task-oriented vs. aimless)
-- It shows them their own patterns over time
-
 ---
 
 ## How It Works
 
-### The Flow
+### The Full Flow
 
 ```
 User taps Instagram
@@ -65,107 +57,179 @@ MindGate intercepts
 Step 1 — Mood check-in
 "How are you feeling right now?" (😔 😟 😐 🙂 😊)
         ↓
-Step 2 — Reason prompt
-"What's the plan — what do you want to do there?"
-        ↓
-Step 3 — AI evaluation
-Claude analyses: mood + reason + time of day + usage history
+Step 2 — Motivational interviewing conversation
+Claude asks why. If the answer is vague, it probes further.
+Max 2 follow-ups, then a final decision is always made.
         ↓
         ├── ALLOW  → Grants timed access (e.g. 5 min to reply to a DM)
+        │           Countdown timer starts
+        │
         ├── REFLECT → Names the pattern, offers alternatives
-        └── REDIRECT → Shows usage data, firmer pushback on 3rd+ attempt
+        │             + "Try the 90-second pause" →
+        │                 Guided breathing (4s inhale / 4s hold / 4s exhale)
+        │                 After 90s: mood re-check
+        │                 → Urge passed? Close. Still want it? Allowed.
+        │
+        └── REDIRECT → Firmer response, shows usage pattern
+                       + same urge surfing option
         ↓
-Step 4 (if allowed) — Countdown timer
+Step 3 (if allowed) — Countdown timer during session
         ↓
-Step 5 — Post-session check-in
-"Did you do what you came to do? How do you feel now?"
+Step 4 — Post-session mood check-in
+"How do you feel now?" — closes the feedback loop
         ↓
-Analytics updated
+Session logged to local analytics
 ```
+
+### Multi-turn Motivational Interviewing
+
+The conscience conversation isn't a single question you type through. Claude conducts a short dialogue:
+
+- **Clear, task-oriented reason** → Claude decides immediately
+  *"I need to reply to a DM about tomorrow's plans" → Allowed, 5 min*
+
+- **Vague or reactive reason** → Claude probes
+  *"Just want to check" → "Check what specifically? Is there something you're hoping to find?"*
+
+- **Still vague after follow-up** → Claude makes its decision with the full context
+
+This is far harder to bypass than a single gate. It requires genuine articulation of intent.
+
+### Speech Input
+
+Users can speak their reason instead of typing it. The act of saying out loud *"I'm just bored"* is itself a cognitive intervention — it's harder to be dishonest with yourself when you hear your own words.
+
+Uses the browser's built-in Web Speech API — no external service, no cost.
+
+### Urge Surfing (90-second pause)
+
+When Claude's decision is reflect or redirect, users are offered the 90-second pause:
+
+- Animated breathing guide: 4s inhale, 4s hold, 4s exhale, cycling for 90 seconds
+- Narrated phases: *"Inhale... Hold... Let it go..."*
+- After 90s: *"How are you feeling now?"*
+- If mood improved → encouragement and close option
+- If unchanged → user is allowed through (the friction is already done)
+
+Research shows the majority of urges pass within this window. The animation makes the wait feel purposeful rather than punitive.
 
 ### Decision Logic
 
-The AI evaluates three signals together — never in isolation:
+Claude evaluates multiple signals together:
 
 | Signal | What it tells us |
 |---|---|
-| Mood score (1–5) | Emotional state at time of impulse |
-| Stated reason | Task-oriented vs. aimless vs. avoidant |
-| Usage history | First open vs. 4th open in an hour |
+| Mood (1–5) | Emotional state at time of impulse |
+| Conversation | Depth and specificity of stated intent |
+| Time of day | Late-night opens treated differently than midday |
+| Usage history | 1st attempt vs. 4th in an hour |
 
-**Allow** — clear task: reply to a specific message, post content, check event details, coordinate plans
-**Reflect** — vague or emotionally-driven: "just bored", "want to check likes", "nothing to do"
-**Redirect** — 3+ attempts in past hour, or repeat emotional pattern (e.g. opening during stress)
-
-### Resistance Tiers
-The system gets progressively firmer across attempts, without ever becoming hostile:
-- **1st attempt:** gentle, conversational, may allow
-- **2nd attempt within 1 hour:** shows the pattern ("You've tried twice in the last hour")
-- **3rd+ attempt:** displays their usage data directly, asks them to reflect on it
+**Allow** — specific, task-oriented intent: reply to a named person, post content, check a specific event
+**Reflect** — vague or emotionally-driven: "just bored", "nothing to do", "want to see if anyone liked my post"
+**Redirect** — 3+ attempts in past hour, or pattern of reactive opens
 
 ---
 
 ## Features
 
 ### Conscience Layer
-- Mood check-in with optional context note
-- LLM conversation asking for intent
-- Structured AI decision with empathetic plain-language explanation
+- Mood check-in (emoji scale, optional context note)
+- Multi-turn AI conversation — motivational interviewing, not a single gate
+- Speech input via Web Speech API
+- Structured AI decision with compassionate plain-language explanation
 - Alternative activity suggestions matched to mood and time of day
-- Emergency override always available (adds friction, logs the bypass)
+- Emergency override always visible (logs the bypass, no hard block)
+
+### Urge Surfing Mode
+- 90-second guided breathing animation (4-4-4 cycle)
+- Narrated phases with gentle prompts
+- Post-pause mood re-check
+- Win rate tracked: how often the urge passed without opening
 
 ### Timed Access
-- When a reason is legitimate, access is granted for a specific window (3–15 min)
+- Legitimate sessions granted 3–15 minutes based on the stated task
 - Circular countdown timer visible during the session
-- Timer calibrated to the stated task (replying to a DM = shorter than posting content)
+- "Done early" option closes the session before the timer
 
 ### Post-Session Reflection
-- Mood check-in after the session ends
-- Surfaces mood delta: if mood after < mood before, gently notes it
-- This feedback loop is the core long-term behaviour change mechanism
+- Mood check-in after every session
+- If mood drops, gently surfaces it: *"Scrolling left you feeling worse. That's useful to know."*
+- Data stored for analytics — closes the before/after feedback loop
 
-### Analytics Dashboard
-- Attempts by hour of day (highlights late-night spike patterns)
-- Allow / Reflect / Redirect breakdown over time
-- Most-attempted apps
-- Mindful days streak (days with zero unintentional opens)
-- Full session history with reason and decision logged
+### Analytics — Behavioural Insights, Not Just Charts
+
+Every visualisation answers a question the user didn't know they needed to ask.
+
+**MindScore (0–100)** — weekly composite:
+- 40 pts: % of opens that were intentional
+- 30 pts: mood delta trend (positive = improving)
+- 30 pts: days with zero reactive opens
+- Shows week-over-week delta: *"+12 from last week"*
+
+**The Mood Truth** — before/after line chart across all sessions
+*"Your mood dropped after 68% of scroll sessions."*
+This single number is often the most impactful thing in the app.
+
+**Trigger Map** — 7-day × 24-hour heatmap
+*"Your highest-risk hour is 22:00. Most opens on Sunday."*
+Users instantly see their own danger zones.
+
+**What's Behind Your Opens** — client-side reason classifier
+Buckets session reasons into: Intentional / Boredom / Avoidance / Emotional / Habit
+Runs entirely locally — no reason text leaves the device.
+*Goal: watch Intentional grow and Habit shrink over weeks.*
+
+**Urge Surfing Win Rate** — progress ring showing % of pauses where the urge passed
+*"11 of 14 breathing pauses — you chose not to open the app."*
+
+**LLM Weekly Narrative** — anonymised stats sent to Claude, personalised insight returned:
+*"This week you made 31 attempts. 18 happened after 9pm. Your mood dropped after 12 of those 18 sessions — that's a pattern worth paying attention to. Your best days were Tuesday and Thursday."*
+This is what a therapist would say. Concrete, specific, non-judgmental.
 
 ### Privacy-First Design
-- All data stored in localStorage — nothing leaves the device
-- No user accounts, no tracking, no server-side storage of personal data
-- Only the LLM evaluation call (reason + mood + anonymous usage stats) touches a server
+- All session data stored in localStorage — nothing persists on any server
+- Reason text is never stored server-side; only anonymised category counts sent for narrative
+- No user accounts, no tracking, no external analytics
+- Emergency override always available
 
 ---
 
 ## Technical Architecture
 
 ```
-┌─────────────────────────────────┐
-│         Next.js Frontend        │
-│                                 │
-│  Phone mockup simulation        │
-│  ConscienceLayer state machine  │
-│  Analytics dashboard (Recharts) │
-│  localStorage session store     │
-└──────────────┬──────────────────┘
-               │ POST /api/evaluate
-               │ (mood, reason, history)
-┌──────────────▼──────────────────┐
-│         FastAPI Backend         │
-│                                 │
-│  Structured prompt engineering  │
-│  JSON response parsing          │
-│  Decision: allow/reflect/redirect│
-└──────────────┬──────────────────┘
-               │
-┌──────────────▼──────────────────┐
-│      Claude claude-sonnet-4-6   │
-│                                 │
-│  Compassionate, non-judgmental  │
-│  Contextually aware responses   │
-│  Structured JSON output         │
-└─────────────────────────────────┘
+┌───────────────────────────────────────┐
+│           Next.js 16 Frontend         │
+│                                       │
+│  Phone mockup simulation              │
+│  ConscienceLayer state machine        │
+│  Multi-turn chat interface            │
+│  Web Speech API (speech input)        │
+│  UrgeSurfing breathing component      │
+│  Analytics dashboard (Recharts)       │
+│  Client-side reason classifier        │
+│  localStorage session store           │
+└───────────────┬───────────────────────┘
+                │ POST /api/evaluate
+                │ (mood, messages[], history)
+                │
+                │ POST /api/insights
+                │ (anonymised weekly stats)
+┌───────────────▼───────────────────────┐
+│           Python FastAPI              │
+│                                       │
+│  Multi-turn prompt engineering        │
+│  follow_up | decision response types  │
+│  Insights narrative endpoint          │
+└───────────────┬───────────────────────┘
+                │
+┌───────────────▼───────────────────────┐
+│        Claude claude-sonnet-4-6       │
+│                                       │
+│  Motivational interviewing dialogue   │
+│  Compassionate, contextually aware    │
+│  Structured JSON output               │
+│  Weekly insight narrative generation  │
+└───────────────────────────────────────┘
 ```
 
 **Stack:**
@@ -184,44 +248,48 @@ The system gets progressively firmer across attempts, without ever becoming host
 
 Benefits: users who want to change their relationship with their phone. The tool is opt-in, always transparent about what it's doing and why.
 
-Potential harm: a user in crisis reaching for their phone for genuine support (e.g. contacting a friend during a mental health emergency) could be slowed down. Mitigation: the emergency override is always visible and one tap away. MindGate is not a safety tool and does not position itself as one.
+Potential harm: a user in crisis reaching for their phone for genuine support (contacting a friend during a mental health emergency) could be slowed down. Mitigation: the emergency override is always one tap away, always visible. MindGate is not a crisis tool and does not position itself as one.
 
 **2. What could go wrong?**
 
 | Risk | Mitigation |
 |---|---|
-| AI gives harmful advice | LLM prompt explicitly forbids prescriptive advice; always frames as observation not instruction |
-| Becomes a shame spiral | Every response is compassionate in tone; never uses words like "addiction", "fail", "wrong" |
-| Privacy violation | No server-side data storage; reason/mood data never persists beyond the LLM call |
-| False sense of control | Transparency: MindGate tells users what it observed and why it made its decision |
+| AI gives harmful advice | Prompt explicitly forbids prescriptive advice; always frames as observation, not instruction |
+| Becomes a shame spiral | Every response is compassionate; words like "addiction", "fail", "wrong" are never used |
+| Privacy violation | Reason text never stored server-side; only anonymised counts sent for narrative |
+| User feels controlled | Emergency override always available; user has final say on every decision |
+| Bad urge surfing experience | Skip button always visible; urge surfing is always optional, never forced |
 
 **3. Does it empower people or make decisions for them?**
 
-MindGate never makes a hard decision. It can reflect and redirect, but it cannot block. The user always has the final say. The goal is not compliance — it's **informed choice**. The AI provides context the user doesn't have in the moment (their mood, the time, how many times they've tried today). What they do with that context is entirely up to them.
+MindGate never makes a hard decision. It can reflect and redirect, but it cannot block. The user always has the final say. The goal is not compliance — it's **informed choice**. The AI provides context the user doesn't have in the moment (their mood, the time, the pattern behind their behaviour). What they do with that context is entirely up to them.
+
+The multi-turn conversation is not an interrogation — it's an invitation to examine your own motivations, the way a good therapist would. Many users will choose to close the app themselves once they hear their own reason spoken or written back to them.
 
 ---
 
 ## Impact Potential
 
 ### Immediate (hackathon demo)
-- Demonstrates the full conscience layer flow end-to-end
-- Shows real AI evaluation adapting to different moods and reasons
-- Analytics dashboard shows what behaviour change tracking looks like over time
+- Full conscience conversation flow end-to-end with real Claude responses
+- Urge surfing with breathing animation
+- Analytics dashboard with Mood Truth, Trigger Map, Reason Classifier, MindScore
+- LLM-generated weekly insight from real session data
 
 ### Near-term (3–6 months)
-- Browser extension that intercepts real social media sites (no simulation)
+- Browser extension intercepting real social media sites (no simulation needed)
 - Mobile app with OS-level integration (Screen Time API on iOS, Digital Wellbeing API on Android)
-- Weekly insight digest: "Here's your week in social media. Here's what your best days looked like."
+- Scheduled "social media windows" users can pre-commit to
 
 ### Long-term
-- Therapist dashboard: clinicians can use anonymised MindGate session data as a starting point for conversations about phone use — with patient consent
-- Research partnerships: the mood-before / mood-after delta across thousands of sessions would be genuinely novel data on how social media affects emotional state in real time
-- Integration with existing mental health apps (Woebot, Headspace, etc.) as a behavioural layer
+- Therapist dashboard: clinicians use anonymised MindGate session data as a conversation starting point — with full patient consent
+- Research partnerships: the mood-before / mood-after delta at scale is genuinely novel data on social media's real-time emotional impact
+- Integration with mental health apps (Woebot, Headspace, etc.) as a behavioural intervention layer
 
 ### Scale
 - 2.5 billion social media users globally
 - No distribution cost once built as a browser extension
-- No recurring cost to users (API call per evaluation is fractions of a cent)
+- Fractions of a cent per evaluation — accessible at any scale
 - Particularly high-impact in markets where mental health services are inaccessible or stigmatised
 
 ---
@@ -232,13 +300,16 @@ MindGate never makes a hard decision. It can reflect and redirect, but it cannot
 |---|---|---|---|
 | Stops mindless use | ✓ (but gets disabled) | ✓ (but gets disabled) | ✓ (friction without blocking) |
 | Respects autonomy | ✗ | ✗ | ✓ |
+| Uses motivational interviewing | ✗ | ✗ | ✓ |
+| Urge surfing technique | ✗ | ✗ | ✓ |
 | Builds self-awareness | ✗ | ✗ | ✓ |
 | Adapts to context | ✗ | ✗ | ✓ |
-| Shows behaviour patterns | ✗ | Partial | ✓ |
+| Shows behavioural patterns | ✗ | Partial | ✓ |
+| Mood impact data | ✗ | ✗ | ✓ |
 | Works with legitimate use | ✗ | Partial | ✓ |
 | Emergency access | ✗ | ✓ | ✓ |
 
-The key insight: **the goal is not to stop people using social media. It is to make every open a choice rather than a reflex.** That's a fundamentally different design philosophy — and it's the only one that can actually work long-term.
+The key insight: **the goal is not to stop people using social media. It is to make every open a choice rather than a reflex.** That's a fundamentally different design philosophy — and the only one that can work long-term.
 
 ---
 
